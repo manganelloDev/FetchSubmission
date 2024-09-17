@@ -13,8 +13,11 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class MainFragmentViewModel : ViewModel() {
-    private val _remoteData = MutableLiveData<List<RemoteData>>()
-    val remoteData: LiveData<List<RemoteData>> get() = _remoteData
+    private val _recyclerData = MutableLiveData<Map<Int, List<RemoteData>>>()
+    val recyclerData: LiveData<Map<Int, List<RemoteData>>> get() = _recyclerData
+
+    private val _listIds = MutableLiveData<List<Int>>()
+    val listIds: LiveData<List<Int>> get() = _listIds
 
     fun retrieveData() {
         val retrofit = Retrofit.Builder()
@@ -27,12 +30,22 @@ class MainFragmentViewModel : ViewModel() {
         retrofitInstance.getItems().enqueue(object : Callback<List<RemoteData>> {
             override fun onResponse(call: Call<List<RemoteData>>, response: Response<List<RemoteData>>) {
                 if (response.isSuccessful) {
-                    val items = response.body() ?: emptyList()
-                    _remoteData.postValue(items)
+                    val items = response.body()
+                        ?.filter { !it.name.isNullOrBlank() }
+                        ?.groupBy { it.listId }
+                        ?.toSortedMap()
+                        ?.mapValues { (_, items) -> items.sortedBy { it.name } }
+                        ?: emptyMap()
+
+                    _recyclerData.postValue(items)
+
+                    val listIds = items.keys.toList()
+                    _listIds.postValue(listIds)
                 }
             }
 
             override fun onFailure(call: Call<List<RemoteData>>, t: Throwable) {
+                // Additional error handling logic could be implemented here to alert the user of the issue
                 Log.e("MainActivity", "Error fetching data: ${t.cause} ${t.message}", t)
             }
         })
