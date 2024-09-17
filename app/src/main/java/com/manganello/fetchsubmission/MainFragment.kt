@@ -26,5 +26,13 @@ class MainFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setObservers()
+        viewModel.retrieveData()
+    }
+
+    private fun setObservers() {
+        viewModel.remoteData.observe(viewLifecycleOwner) { hiringData ->
+            binding.TextView.text = "$hiringData"
+        }
     }
 }
